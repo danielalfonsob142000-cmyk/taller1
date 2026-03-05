@@ -159,6 +159,3 @@ flowchart LR
 - Limitar permisos de tokens y rotarlos periódicamente.
 - Habilitar herramientas de detección de secretos (por ejemplo, Gitleaks/Secret Scanning).
 
-## Cierre
-
-Este taller demuestra que la seguridad en DevSecOps no depende de una sola herramienta, sino de controles continuos: identidad verificable, autenticación fuerte, permisos mínimos, higiene de repositorio y respuesta rápida ante exposición de secretos.
