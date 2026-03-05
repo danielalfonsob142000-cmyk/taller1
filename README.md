@@ -1,172 +1,164 @@
-# Taller 1 — Fundamentos de DevSecOps
+# Taller 1 — Análisis DevSecOps (Respuesta Profesional)
 
-## ¿Qué es DevSecOps?
-
-**DevSecOps** significa **Development (Desarrollo) + Security (Seguridad) + Operations (Operaciones)**.
-
-Es una metodología que integra la seguridad durante **todo el ciclo de vida del software**, no solo al final. Su enfoque principal es que desarrollo, operaciones y seguridad trabajen de forma coordinada desde el inicio.
-
-## Objetivo principal
-
-Detectar y corregir vulnerabilidades **lo antes posible** para reducir:
-
-- Riesgo de incidentes de seguridad.
-- Costo de corrección en etapas tardías.
-- Tiempo de entrega afectado por retrabajo.
-
-## Seguridad en cada etapa del ciclo DevSecOps
-
-### 1) Planificación
-
-- Identificar riesgos técnicos y de negocio.
-- Definir requisitos de seguridad (autenticación, cifrado, trazabilidad, cumplimiento).
-- Establecer criterios de aceptación de seguridad.
-
-### 2) Desarrollo
-
-- Aplicar prácticas de código seguro.
-- Realizar revisión de código (peer review).
-- Usar análisis estático de código (SAST).
-- Gestionar dependencias con control de vulnerabilidades.
-
-### 3) Integración Continua (CI/CD)
-
-- Ejecutar escaneo automático de vulnerabilidades.
-- Automatizar pruebas de seguridad en pipelines.
-- Bloquear despliegues si hay hallazgos críticos.
-
-### 4) Despliegue
-
-- Configuración segura por defecto (hardening).
-- Control de acceso basado en roles (RBAC).
-- Gestión segura de secretos (tokens, llaves, contraseñas).
-
-### 5) Monitoreo y Respuesta
-
-- Centralización de logs y alertas.
-- Detección temprana de comportamientos anómalos.
-- Plan de respuesta a incidentes y mejora continua.
+> **Fecha:** 04/03/2026  
+> **Tema:** Trazabilidad, SSH, mínimo privilegio, higiene del repositorio y exposición de secretos.
 
 ---
 
-## Preguntas orientadoras — Análisis DevSecOps
+## 1) Trazabilidad
 
-### 1) Trazabilidad
+### Pregunta
+¿Por qué es un riesgo de seguridad dejar la configuración de `user.name` y `user.email` vacía o usar datos genéricos en un entorno empresarial?
 
-**Pregunta:** ¿Por qué es un riesgo de seguridad dejar la configuración de `user.name` y `user.email` vacía o utilizar datos genéricos en un entorno empresarial?
+### Respuesta
+En un entorno empresarial, cada commit debe estar asociado a una identidad real y verificable. Si `user.name` y `user.email` están vacíos o son genéricos:
 
-**Respuesta:**
-En un entorno empresarial, cada commit debe poder asociarse a una identidad real y verificable. Si `user.name` y `user.email` están vacíos o son genéricos:
+- Se pierde la trazabilidad de quién realizó cada cambio.
+- Se dificulta la investigación de incidentes y auditorías.
+- No se puede asignar responsabilidad sobre errores o vulnerabilidades.
+- Se debilita el cumplimiento de políticas internas y normas de seguridad.
 
-- Se pierde la trazabilidad de cambios.
-- Se dificulta identificar al responsable de un error o vulnerabilidad.
-- Se complica una auditoría o investigación forense.
-- Se debilitan controles de cumplimiento y responsabilidad.
+**Conclusión:** la identidad Git correcta es un control de seguridad y de auditoría, no solo un dato de configuración.
 
-**Buena práctica:** configurar identidad corporativa correcta y exigir commits firmados cuando aplique.
-
----
-
-### 2) Cifrado asimétrico (SSH)
-
-**Pregunta:** ¿Cuál es la diferencia funcional entre la llave privada y la pública? ¿Qué pasaría si un tercero obtiene acceso a tu llave privada?
-
-**Respuesta:**
-En autenticación SSH se usan dos llaves:
-
-- **Llave pública:** se comparte con el servidor (por ejemplo GitHub/GitLab) para reconocer al usuario.
-- **Llave privada:** permanece solo en el equipo del usuario y prueba su identidad al firmar el reto criptográfico.
-
-Si un tercero obtiene la llave privada, puede autenticarse como el usuario legítimo y:
-
-- Acceder a repositorios.
-- Subir o modificar código malicioso.
-- Exfiltrar información sensible.
-
-**Buena práctica:** proteger la llave privada con passphrase, no compartirla nunca y rotarla ante sospecha de compromiso.
+### Imagen (flujo de trazabilidad)
+```mermaid
+flowchart LR
+	A[Desarrollador identificado] --> B[Commit firmado y con email corporativo]
+	B --> C[Historial auditable]
+	C --> D[Investigación rápida de incidentes]
+	X[Usuario genérico o vacío] --> Y[Commit sin responsable]
+	Y --> Z[Riesgo legal, técnico y operativo]
+```
 
 ---
 
-### 3) Principio de mínimo privilegio (PAT)
+## 2) Cifrado asimétrico (SSH)
 
-**Pregunta:** ¿Qué riesgos conlleva asignar permisos de “Administrador” (Full Control) a un PAT en lugar de permisos de lectura/escritura?
+### Pregunta
+¿Cuál es la diferencia funcional entre la llave privada y la pública? ¿Qué pasa si un tercero obtiene la llave privada?
 
-**Respuesta:**
-El principio de mínimo privilegio indica que un usuario o token debe tener únicamente los permisos necesarios para su función.
+### Respuesta
+SSH usa criptografía asimétrica:
 
-Un PAT con **Full Control** incrementa el impacto ante filtración o robo, permitiendo acciones críticas como:
+- **Llave pública:** se comparte con el servidor (GitHub/GitLab/servidor SSH) para registrar tu identidad.
+- **Llave privada:** permanece en tu equipo y se usa para demostrar que eres el dueño legítimo de la llave pública.
+
+Si alguien roba la llave privada, podrá autenticarse como tú y podría:
+
+- Acceder a repositorios privados.
+- Subir cambios maliciosos.
+- Descargar o exfiltrar información sensible.
+
+**Conclusión:** la llave privada es crítica; debe protegerse con passphrase y nunca compartirse.
+
+### Imagen (relación de llaves)
+```mermaid
+flowchart TD
+	A[Llave pública] --> B[Se carga en GitHub/Servidor]
+	C[Llave privada] --> D[Se guarda solo en equipo local]
+	D --> E[Firma el desafío de autenticación]
+	B --> F[Servidor valida identidad]
+	G[Robo de llave privada] --> H[Suplantación de identidad]
+```
+
+---
+
+## 3) Principio de Mínimo Privilegio (PAT)
+
+### Pregunta
+¿Qué riesgos tiene asignar permisos de Administrador (Full Control) a un PAT en vez de Lectura/Escritura?
+
+### Respuesta
+El principio de mínimo privilegio indica que un usuario o token debe tener solo permisos estrictamente necesarios.
+
+Un PAT con **Full Control** aumenta el impacto ante fuga o robo, porque permite acciones críticas como:
 
 - Eliminar repositorios.
-- Modificar configuraciones sensibles.
-- Gestionar colaboradores y permisos.
-- Acceder a recursos innecesarios.
+- Cambiar configuraciones de seguridad.
+- Modificar permisos de colaboradores.
+- Acceder a recursos no necesarios para la tarea.
 
-Con permisos limitados (lectura/escritura), el daño potencial se reduce significativamente.
+Con permisos limitados (lectura/escritura), el daño potencial se reduce considerablemente.
 
-**Buena práctica:** definir alcance mínimo, fecha de expiración y rotación periódica de tokens.
+**Conclusión:** menos privilegios = menor superficie de ataque.
 
----
-
-### 4) Higiene del repositorio (`.gitignore`)
-
-**Pregunta:** ¿Para qué sirve `.gitignore` desde una perspectiva de seguridad?
-
-**Respuesta:**
-`.gitignore` evita que archivos sensibles o irrelevantes entren al repositorio remoto, reduciendo la exposición accidental de datos.
-
-**Archivos que nunca deberían subirse (ejemplos):**
-
-- Credenciales y secretos: `.env`, `*.pem`, `*.key`, `id_rsa`.
-- Archivos de configuración local con datos sensibles: `config.local.*`.
-- Artefactos temporales o del sistema: `.DS_Store`, `Thumbs.db`.
-- Logs con información sensible: `*.log`.
+### Imagen (comparación de impacto)
+```mermaid
+flowchart LR
+	A[PAT filtrado] --> B{Nivel de permisos}
+	B -->|Read/Write| C[Impacto limitado]
+	B -->|Full Control| D[Impacto crítico]
+	D --> E[Eliminación, cambios de seguridad, abuso de acceso]
+```
 
 ---
 
-### 5) Exposición de secretos en GitHub
+## 4) Higiene del repositorio (`.gitignore`)
 
-**Pregunta:** Si accidentalmente subes una API key o contraseña, ¿basta con borrarla y hacer un nuevo commit?
+### Pregunta
+¿Para qué sirve `.gitignore` desde seguridad? Menciona al menos dos tipos de archivos que nunca deben subirse.
 
-**Respuesta:**
-No. El secreto continúa en el historial de Git, aunque se elimine en commits posteriores.
+### Respuesta
+`.gitignore` evita que archivos sensibles o innecesarios se agreguen al repositorio remoto por error.
 
-**Acciones correctas inmediatas:**
+Ayuda a prevenir exposición de información crítica y reduce riesgo operacional.
 
-1. Revocar o deshabilitar la credencial comprometida.
+**Archivos que no deben subirse (ejemplos):**
+
+1. **Secretos y credenciales:** `.env`, `*.key`, `*.pem`, `id_rsa`.
+2. **Configuraciones locales sensibles:** `config.local.*`.
+3. **Logs o volcados con datos sensibles:** `*.log`, `*.dump`.
+4. **Archivos temporales del sistema:** `.DS_Store`, `Thumbs.db`.
+
+**Conclusión:** `.gitignore` es una barrera preventiva básica contra filtraciones accidentales.
+
+### Imagen (prevención con .gitignore)
+```mermaid
+flowchart TD
+	A[Archivos locales] --> B{.gitignore aplica?}
+	B -->|Sí| C[No se suben al repo]
+	B -->|No| D[Pueden terminar en GitHub]
+	D --> E[Riesgo de exposición]
+```
+
+---
+
+## 5) Exposición de secretos en GitHub
+
+### Pregunta
+Si subes accidentalmente una API key o contraseña, ¿basta con borrarla y hacer otro commit?
+
+### Respuesta
+No es suficiente. Aunque borres el archivo en un commit nuevo, el secreto sigue presente en el historial Git y puede recuperarse.
+
+### Acciones correctas
+1. Revocar inmediatamente la credencial comprometida.
 2. Generar una nueva credencial.
-3. Eliminar el secreto del historial (`git filter-repo` o alternativa equivalente).
-4. Forzar actualización de clones si aplica.
-5. Implementar prevención: secretos en variables de entorno o gestor de secretos.
+3. Limpiar el historial del repositorio (`git filter-repo` u otra técnica de reescritura).
+4. Verificar que no queden copias en forks, caches o pipelines.
+5. Implementar controles preventivos (secret scanning, hooks, variables de entorno, gestor de secretos).
+
+**Conclusión:** borrar en un commit posterior no elimina la exposición real del secreto.
+
+### Imagen (respuesta a incidente)
+```mermaid
+flowchart LR
+	A[Secreto expuesto] --> B[Revocar]
+	B --> C[Rotar credencial]
+	C --> D[Limpiar historial]
+	D --> E[Prevenir recurrencia]
+```
 
 ---
 
-## Buenas prácticas profesionales recomendadas
+## Recomendaciones finales (nivel profesional)
 
-- Activar MFA en cuentas de repositorio y nube.
-- Habilitar escaneo de secretos (secret scanning).
-- Aplicar protección de ramas (`main`/`master`) con pull requests obligatorios.
-- Exigir revisiones de código y status checks antes de merge.
-- Automatizar SAST, DAST y análisis de dependencias (SCA) en CI.
-- Mantener inventario y actualización de librerías vulnerables.
-- Definir política de respuesta a incidentes y postmortem.
+- Usar cuentas corporativas con **MFA**.
+- Activar **branch protection** y pull request obligatorio.
+- Exigir revisiones de código y escaneo de seguridad en CI/CD.
+- Limitar permisos de tokens y rotarlos periódicamente.
+- Habilitar herramientas de detección de secretos (por ejemplo, Gitleaks/Secret Scanning).
 
-## Herramientas comunes en DevSecOps
+## Cierre
 
-- **SAST:** SonarQube, Semgrep.
-- **SCA (dependencias):** Dependabot, Snyk.
-- **Secret scanning:** Gitleaks, GitHub Secret Scanning.
-- **Contenedores e infraestructura:** Trivy, Checkov.
-- **Monitoreo y detección:** ELK/Opensearch, Prometheus + Alertmanager, SIEM.
-
-## Checklist mínimo para un repositorio seguro
-
-- [ ] Identidad Git corporativa correctamente configurada.
-- [ ] Autenticación fuerte (SSH con passphrase o token con MFA).
-- [ ] `.gitignore` con exclusión de secretos y archivos locales.
-- [ ] Pipeline CI/CD con escaneo automático de seguridad.
-- [ ] Protección de ramas y revisión obligatoria de código.
-- [ ] Rotación periódica de credenciales y tokens.
-
-## Conclusión
-
-DevSecOps no es una herramienta única, sino una cultura de trabajo que integra seguridad de forma continua. Cuanto antes se incorporen controles de seguridad en el ciclo de desarrollo, menor será el impacto de vulnerabilidades en producción y mayor la confiabilidad del software.
+Este taller demuestra que la seguridad en DevSecOps no depende de una sola herramienta, sino de controles continuos: identidad verificable, autenticación fuerte, permisos mínimos, higiene de repositorio y respuesta rápida ante exposición de secretos.
